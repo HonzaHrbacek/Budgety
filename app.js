@@ -289,7 +289,7 @@ var controller = (function (budgetCtrl, UICtrl) {
     var input, newItem;
 
     console.log(event);
-    console.log("It works :)");
+    console.log("It works :) Git test");
 
     // 1. Get input data
     input = UICtrl.getInput();
