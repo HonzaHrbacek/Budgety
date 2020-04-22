@@ -1,4 +1,6 @@
-// *** BUDGETY APP *** //
+/*
+----- BUDGETY APP -----
+*/
 
 /*
 // BUDGET CONTROLLER
@@ -137,7 +139,7 @@ var controller = (function (budgetCtrl, UICtrl) {
 controller.init();
 */
 
-// BUDGET CONTROLLER
+// ***** BUDGET CONTROLLER *****
 
 var budgetController = (function () {
   // Expense function constructor
@@ -156,7 +158,7 @@ var budgetController = (function () {
     this.value = value;
   };
 
-  // Data structure
+  // Data structure, it is best practice to have such neat data structure (e.g. in one object)
 
   var data = {
     allItems: {
@@ -169,33 +171,39 @@ var budgetController = (function () {
     },
   };
 
+  // General comment: we are returning object with methods that are called elsewhere
   return {
     addItem: function (type, des, val) {
       var newItem, ID;
 
+      // Create new ID
       if (data.allItems[type].length === 0) {
         ID = 0;
       } else {
-        ID = data.allItems[type][data.allItems[type].length - 1].id + 1;
+        ID = data.allItems[type][data.allItems[type].length - 1].id + 1; // This will assign id of the last element + 1 (this is useful e.g. in case some records (i.e. ids) were deleted by user)
       }
 
+      // Create new item base on "inc" or "exp" type
       if (type === "exp") {
         newItem = new Expense(ID, des, val);
       } else if (type === "inc") {
         newItem = new Income(ID, des, val);
       }
 
+      // Push new item into the data structure
       data.allItems[type].push(newItem);
       // We need to return newItem so that it can be used as a parameter of addListItem method
       return newItem;
     },
+
+    // Just testing method to check if data structure was updated based on user's input
     test: function () {
       console.log(data);
     },
   };
 })();
 
-// UI CONTROLLER
+// ***** UI CONTROLLER *****
 
 var UIController = (function () {
   var DOMstrings = {
@@ -232,7 +240,7 @@ var UIController = (function () {
           '<div class="item clearfix" id="expense-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__percentage">21%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
       }
 
-      // Replace the placeholder with some actual data
+      // Replace the placeholder with actual data
 
       newHtml = html.replace("%id%", obj.id);
       newHtml = newHtml.replace("%description%", obj.description);
@@ -254,6 +262,7 @@ var UIController = (function () {
       // This converts a list to an array
       fieldsArr = Array.prototype.slice.call(fields);
 
+      // This replaces description and value with ""
       fieldsArr.forEach(function (current, index, array) {
         current.value = "";
       });
@@ -267,7 +276,7 @@ var UIController = (function () {
   };
 })();
 
-// GLOBAL APP CONTROLLER
+// ***** GLOBAL APP CONTROLLER *****
 // Logic: in Budget and UI controller there are created methods which are called in here
 
 var controller = (function (budgetCtrl, UICtrl) {
@@ -278,8 +287,7 @@ var controller = (function (budgetCtrl, UICtrl) {
 
     document.addEventListener("keypress", function (event) {
       if (event.keyCode === 13 || event.which === 13) {
-        event.preventDefault();
-
+        event.preventDefault(); // prevents two logs into console when user firstly clicks and then presses enter
         ctrlAddItem();
       }
     });
@@ -303,7 +311,6 @@ var controller = (function (budgetCtrl, UICtrl) {
 
     if (input.description != "" && !isNaN(input.value) && input.value > 0) {
       // 2. Add item to the budget controller
-
       var newItem = budgetCtrl.addItem(
         input.type,
         input.description,
@@ -313,7 +320,6 @@ var controller = (function (budgetCtrl, UICtrl) {
       budgetController.test();
 
       // 3. Add item to the UI
-
       UICtrl.addListItem(newItem, input.type);
 
       // 4. Clear the fields
@@ -321,9 +327,12 @@ var controller = (function (budgetCtrl, UICtrl) {
 
       // 5. Calculate and update budget/display budget in the UI
       updateBudget();
+    } else {
+      UICtrl.clearFields();
     }
   };
 
+  // Initialization function (called outsite the controller)
   return {
     init: function () {
       setupEventListeners();
