@@ -11,6 +11,19 @@ var budgetController = (function () {
     this.id = id;
     this.description = description;
     this.value = value;
+    this.percentage = -1;
+  };
+
+  Expense.prototype.calcPercentage = function (totalIncome) {
+    if (totalIncome > 0) {
+      this.percentage = Math.round((this.value / totalIncome) * 100);
+    } else {
+      this.percentage = -1;
+    }
+  };
+
+  Expense.prototype.getPercentage = function () {
+    return this.percentage;
   };
 
   //  Income function constructor
@@ -76,16 +89,13 @@ var budgetController = (function () {
       var ids, index;
       ids = data.allItems[type].map(function (current) {
         return current.id; // Map returns brand new array, in this case the array consists of all ids
-
-
-      })
+      });
 
       index = ids.indexOf(id); // This will store index of the element with the appropriate id into index variable
 
       if (index !== -1) {
         data.allItems[type].splice(index, 1); // The splice() method adds/removes items to/from an array, and returns the removed item(s). This removes the item with the appropriate index
       }
-
     },
 
     calculateBudget: function () {
@@ -99,8 +109,24 @@ var budgetController = (function () {
       if (data.totals.inc > 0) {
         data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
       } else {
-        data.percentage = -1; // This is useful for usage of the displayBudget method 
+        data.percentage = -1; // This is useful for usage of the displayBudget method
       }
+    },
+
+    calculatePercentages: function () {
+      // Calculate percentage for each expense object
+      data.allItems.exp.forEach(function (cur) {
+        cur.calcPercentage(data.totals.inc);
+      });
+    },
+
+    getPercentages: function () {
+      // Return the array with percentages
+
+      var allPerc = data.allItems.exp.map(function (cur) {
+        return cur.getPercentage();
+      });
+      return allPerc;
     },
 
     // Return getBudget so that it can be displayed in the UI
@@ -135,7 +161,7 @@ var UIController = (function () {
     expensesLabel: ".budget__expenses--value",
     percentageLabel: ".budget__expenses--percentage",
     percentageItemLabel: ".item__percentage",
-    container: ".container"
+    container: ".container",
   };
 
   return {
@@ -175,7 +201,7 @@ var UIController = (function () {
     },
 
     deleteListItem: function (selectorID) {
-      var el = document.getElementById(selectorID)
+      var el = document.getElementById(selectorID);
 
       el.parentNode.removeChild(el);
     },
@@ -208,7 +234,8 @@ var UIController = (function () {
       if (obj.percentage > 0) {
         document.querySelector(DOMstrings.percentageLabel).textContent =
           obj.percentage + "%";
-        document.querySelector(DOMstrings.percentageItemLabel).textContent = obj.percentage + "%";
+        document.querySelector(DOMstrings.percentageItemLabel).textContent =
+          obj.percentage + "%";
       } else {
         document.querySelector(DOMstrings.percentageLabel).textContent = "n.a.";
         //document.querySelector(DOMstrings.percentageItemLabel).textContent = "n.a.";
@@ -237,7 +264,9 @@ var controller = (function (budgetCtrl, UICtrl) {
       }
     });
 
-    document.querySelector(DOM.container).addEventListener("click", ctrlDeleteItem) // Here we are using "event delegation", the element "container" is the first parent container that both income and expenses elements have in common. More info in lecture 89.
+    document
+      .querySelector(DOM.container)
+      .addEventListener("click", ctrlDeleteItem); // Here we are using "event delegation", the element "container" is the first parent container that both income and expenses elements have in common. More info in lecture 89.
   };
 
   var updateBudget = function () {
@@ -250,6 +279,15 @@ var controller = (function (budgetCtrl, UICtrl) {
     // 3. Display the budget in the UI
     UICtrl.displayBudget(budget);
     console.log(budget);
+  };
+
+  var updatePercentages = function () {
+    // 1. Calculate percentages
+    budgetCtrl.calculatePercentages();
+    // 2. Read percentages from the budget controller
+    var percentages = budgetCtrl.getPercentages();
+    // 3. Update the UI
+    console.log(percentages);
   };
 
   var ctrlAddItem = function () {
@@ -280,9 +318,10 @@ var controller = (function (budgetCtrl, UICtrl) {
 
       // 5. Calculate and update budget/display budget in the UI
       updateBudget();
-    } else {
-      UICtrl.clearFields();
     }
+
+    // 6. Calculate and update percentages
+    updatePercentages();
   };
 
   var ctrlDeleteItem = function (event) {
@@ -291,7 +330,7 @@ var controller = (function (budgetCtrl, UICtrl) {
     itemID = event.target.parentNode.parentNode.parentNode.parentNode.id; // We target the element where the event was fired and then move up through the DOM to the element which we want to manipulate and will retrieve  its id wich is the respective income or expense element). This is called "traversing" the DOM structure. Smarter solution using the Regular Expressions: https://www.udemy.com/course/the-complete-javascript-course/learn/lecture/5869254#questions/6723145
     console.log(itemID);
 
-    // Usage of type coersion, itemID will be evaluated as true because it has a value 
+    // Usage of type coersion, itemID will be evaluated as true because it has a value
     if (itemID) {
       splitID = itemID.split("-"); // This split method returns an array of two element, e.g. ["inc", "0"].
       type = splitID[0];
@@ -306,7 +345,10 @@ var controller = (function (budgetCtrl, UICtrl) {
 
     // 3. Update and show the budget
     updateBudget();
-  }
+
+    // 4. Calculate and update percentages
+    updatePercentages();
+  };
 
   // Initialization function (called outsite the controller)
   return {
