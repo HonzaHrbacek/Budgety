@@ -1,6 +1,4 @@
-/*
------ BUDGETY APP -----
-*/
+/* ************************************************************************************************************************************************BUDGETY APP *********************************************************************************************************************************************** */
 
 // ***** BUDGET CONTROLLER *****
 
@@ -161,7 +159,37 @@ var UIController = (function () {
     expensesLabel: ".budget__expenses--value",
     percentageLabel: ".budget__expenses--percentage",
     percentageItemLabel: ".item__percentage",
+    dateLabel: ".budget__title--month",
     container: ".container",
+  };
+
+  var formatNumber = function (num, type) {
+    var numSplit, int, dec, type;
+
+    // Calculate abosolute value
+    num = Math.abs(num);
+    // Convert to two decimal places
+    num = num.toFixed(2);
+
+    // Split number into integer and decimal part
+    numSplit = num.split(".");
+
+    int = parseInt(numSplit[0]);
+    dec = numSplit[1];
+
+    // Add "," between thousands; more info: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/toLocaleString
+    int = int.toLocaleString();
+
+    // Usage of Ternary operator
+    return (type === "exp" ? "-" : "+") + int + "." + dec;
+  };
+
+  // This function allows us to loop through a Node list
+  var nodeListForEach = function (list, callback) {
+    for (i = 0; i < list.length; i++) {
+      callback(list[i], i);
+      console.log(list[i], i); // Only for testing purpose
+    }
   };
 
   return {
@@ -193,7 +221,7 @@ var UIController = (function () {
 
       newHtml = html.replace("%id%", obj.id);
       newHtml = newHtml.replace("%description%", obj.description);
-      newHtml = newHtml.replace("%value%", obj.value);
+      newHtml = newHtml.replace("%value%", formatNumber(obj.value, type));
 
       // Insert HTML into the DOM
 
@@ -227,19 +255,97 @@ var UIController = (function () {
     },
 
     displayBudget: function (obj) {
-      document.querySelector(DOMstrings.budgetLabel).textContent = obj.budget;
-      document.querySelector(DOMstrings.incomeLabel).textContent = obj.totalInc;
-      document.querySelector(DOMstrings.expensesLabel).textContent =
-        obj.totalExp;
+      var type;
+      obj.budget >= 0 ? (type = "inc") : (type = "exp");
+
+      // Negative budget is displayed in red
+      type === "exp"
+        ? document.querySelector(DOMstrings.budgetLabel).classList.add("red")
+        : document
+            .querySelector(DOMstrings.budgetLabel)
+            .classList.remove("red");
+
+      document.querySelector(DOMstrings.budgetLabel).textContent = formatNumber(
+        obj.budget,
+        type
+      );
+      document.querySelector(DOMstrings.incomeLabel).textContent = formatNumber(
+        obj.totalInc,
+        "inc"
+      );
+      document.querySelector(
+        DOMstrings.expensesLabel
+      ).textContent = formatNumber(obj.totalExp, "exp");
       if (obj.percentage > 0) {
         document.querySelector(DOMstrings.percentageLabel).textContent =
           obj.percentage + "%";
-        document.querySelector(DOMstrings.percentageItemLabel).textContent =
-          obj.percentage + "%";
       } else {
         document.querySelector(DOMstrings.percentageLabel).textContent = "n.a.";
-        //document.querySelector(DOMstrings.percentageItemLabel).textContent = "n.a.";
       }
+    },
+
+    displayPercentages: function (perc) {
+      // Great explantion of this concept: https://www.udemy.com/course/the-complete-javascript-course/learn/lecture/5869268#questions/6644677
+
+      // We do not know, how many elements will have this CSS class, so we have to use querySelectorAll method. The Document method querySelectorAll() returns a static (not live) NodeList (the document's elements are called Nodes) representing a list of the document's elements that match the specified group of selectors.
+      var fields = document.querySelectorAll(DOMstrings.percentageItemLabel);
+
+      // We are passing fields NodeList and callback function similarly to normal forEach method
+      nodeListForEach(fields, function (cur, index) {
+        if (perc[index] > 0) {
+          cur.textContent = perc[index] + "%";
+        } else {
+          cur.textContent = "n.a.";
+        }
+      });
+    },
+
+    displayDate: function () {
+      var now, month, months, year, formattedDate;
+
+      now = new Date();
+      /* months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+      month = now.getMonth();
+      year = now.getFullYear(); */
+
+      // Shorter code using ECMAScript Internationalization API
+      var formattedDate = new Date().toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
+
+      document.querySelector(
+        DOMstrings.dateLabel
+      ).textContent = /*months[month] + " " + year*/ formattedDate;
+    },
+
+    changedType: function () {
+      var fields = document.querySelectorAll(
+        DOMstrings.inputType +
+          "," +
+          DOMstrings.inputDescription +
+          "," +
+          DOMstrings.inputValue
+      );
+
+      nodeListForEach(fields, function (cur) {
+        cur.classList.toggle("red-focus");
+      });
+
+      document.querySelector(DOMstrings.inputBtn).classList.toggle("red");
     },
 
     getDOMstrings: function () {
@@ -265,6 +371,10 @@ var controller = (function (budgetCtrl, UICtrl) {
     });
 
     document
+      .querySelector(DOM.inputType)
+      .addEventListener("change", UICtrl.changedType);
+
+    document
       .querySelector(DOM.container)
       .addEventListener("click", ctrlDeleteItem); // Here we are using "event delegation", the element "container" is the first parent container that both income and expenses elements have in common. More info in lecture 89.
   };
@@ -287,14 +397,14 @@ var controller = (function (budgetCtrl, UICtrl) {
     // 2. Read percentages from the budget controller
     var percentages = budgetCtrl.getPercentages();
     // 3. Update the UI
-    console.log(percentages);
+    UICtrl.displayPercentages(percentages);
   };
 
   var ctrlAddItem = function () {
     var input, newItem;
 
     console.log(event);
-    console.log("It works :) Git test");
+    console.log("It works :)");
 
     // 1. Get input data
     input = UICtrl.getInput();
@@ -350,11 +460,12 @@ var controller = (function (budgetCtrl, UICtrl) {
     updatePercentages();
   };
 
-  // Initialization function (called outsite the controller)
+  // Initialization function (called outsite the controller). We need to return it, so that it is public function.
   return {
     init: function () {
+      console.log("App has started :)");
       setupEventListeners();
-      console.log("App has started.");
+      UICtrl.displayDate();
       UICtrl.displayBudget({
         budget: 0,
         totalInc: 0,
